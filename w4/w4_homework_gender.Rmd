@@ -1,0 +1,41 @@
+---
+title: "w4_homework"
+author: "willow_liu"
+date: "11/4/2021"
+output: html_document
+---
+### load packages
+```{r}
+library(tidyverse)
+library(sf)
+library(here)
+library(janitor)
+library(countrycode)
+```
+
+### reading data
+```{r}
+HDI <- read_csv(here::here("data", "Gender Inequality Index (GII).csv"),
+                locale = locale(encoding = "latin1"),
+                na="..", skip=5)
+World <- st_read(here::here("data","World_Countries_(Generalized).geojson"))
+```
+## column names
+```{r}
+HDIcols <- HDI %>%
+  clean_names()%>%
+  select(country, x2019, x2010)%>%
+  mutate(difference=x2019-x2010)%>%
+  slice(1:189)%>%
+  mutate(iso_code=countrycode(HDIcols$country, origin ='country.name', destination = 'iso2c'))
+```
+### join data
+```{r}
+Join_HDI <- World %>%
+  clean_names()%>%
+  left_join(.,
+            HDIcols,
+            by = c("aff_iso" = "iso_code"))
+  
+```
+
