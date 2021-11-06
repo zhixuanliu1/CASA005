@@ -1,0 +1,90 @@
+---
+title: "w4_homework"
+author: "willow_liu"
+date: "11/4/2021"
+output: html_document
+---
+### load packages
+```{r}
+library(tidyverse)
+library(sf)
+library(here)
+library(janitor)
+library(countrycode)
+```
+
+### reading data
+```{r}
+HDI <- read_csv(here::here("w4", "data", "Gender Inequality Index (GII).csv"),
+                locale = locale(encoding = "latin1"),
+                na="..", skip=5)
+World <- st_read(here::here("w4","data","World_Countries_(Generalized).geojson"))
+```
+## column names
+```{r}
+HDIcols <- HDI %>%
+  clean_names()%>%
+  select(country, x2019, x2010)%>%
+  mutate(difference=x2019-x2010)%>%
+  slice(1:189)%>%
+  mutate(iso_code=countrycode(HDIcols$country, origin ='country.name', destination = 'iso2c'))
+```
+### join data
+```{r}
+Join_HDI <- World %>%
+  clean_names()%>%
+  left_join(.,
+            HDIcols,
+            by = c("aff_iso" = "iso_code"))
+  
+```
+## condition for mapping
+```{r}
+
+```
+## mapping library
+```{r}
+library(plotly)
+library(tmap)
+library(tmaptools)
+library(janitor)
+```
+
+## mapping
+```{r}
+breaks = c(0.0, 0.2,0.4,0.6,0.8,1.0)
+differentialbreak = c(-0.4,-0.3,-0.2,-0.1,0,0.1)
+
+Join_HDI = st_transform(Join_HDI, crs = "+proj=moll")
+
+map1 <- tm_shape(Join_HDI) + tm_polygons("x2019", breaks=breaks, palette="PuBu") + tm_legend(show=FALSE)+tm_layout(frame=FALSE)+tm_credits("(a)", position = c(0, 0.85), size = 1.5)
+
+map2 <- tm_shape(Join_HDI) + tm_polygons("x2010", breaks=breaks, palette="PuBu")+tm_legend(show=FALSE)+tm_layout(frame=FALSE)+tm_credits("(b)", position = c(0, 0.85), size = 1.5)
+
+map3 <- tm_shape(Join_HDI) + tm_polygons("difference", breaks=differentialbreak, palette=("Blues"),midpoint=NA) + tm_legend(show=FALSE)+tm_layout(frame=FALSE)+tm_credits("(c)", position = c(0, 0.85), size = 1.5)
+
+
+```
+```{r}
+legend <- tm_shape(Join_HDI) +
+    tm_polygons("diff",
+                 palette=("Blues"),
+               midpoint = NA) +
+    tm_scale_bar(position=c(0.2,0.04), text.size=0.6)+
+    tm_compass(north=0, position=c(0.6,0.6))+
+    tm_layout(legend.only = TRUE, legend.position=c(0.3,0.25),asp=0.1)+
+    tm_credits("Mapped data:\nUN Gender Inequality Index\nWorld outline:\nArcGIS Hub 
+               ", position=c(0.3,0.2), just="left")+
+  tm_shape(Join_HDI) + 
+  tm_polygons("x2019", 
+              breaks=breaks,
+              palette="PuBu")+
+  tm_legend(show=TRUE)+
+  tm_layout(legend.only = TRUE, legend.position=c(0.1,0.1),asp=0.1)
+
+t = tmap_arrange(map1,map2,map3,legend,ncol=2)
+```
+
+
+
+
